@@ -59,7 +59,10 @@ Examples:
     const initialResponse = await fetch(url, {
       method,
       body: body ? body : undefined,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        'Accept': 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
     });
 
     if (initialResponse.status !== 402) {
@@ -143,7 +146,10 @@ Examples:
     const response = await client.fetchWithPayment(url, {
       method,
       body: body ? body : undefined,
-      headers: body ? { 'Content-Type': 'application/json' } : undefined,
+      headers: {
+        'Accept': 'application/json',
+        ...(body ? { 'Content-Type': 'application/json' } : {}),
+      },
     });
 
     if (!response.ok) {

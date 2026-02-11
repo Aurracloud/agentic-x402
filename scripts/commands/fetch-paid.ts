@@ -54,7 +54,9 @@ Examples:
   }
 
   try {
-    const headers: Record<string, string> = {};
+    const headers: Record<string, string> = {
+      'Accept': 'application/json',
+    };
 
     if (body) {
       headers['Content-Type'] = 'application/json';
