@@ -52,6 +52,16 @@ const commands: Record<string, Command> = {
     description: 'Get info about a payment link',
     category: 'links',
   },
+  routers: {
+    script: 'commands/routers.ts',
+    description: 'List routers where your wallet is a beneficiary',
+    category: 'links',
+  },
+  distribute: {
+    script: 'commands/distribute.ts',
+    description: 'Distribute USDC from a PaymentRouter',
+    category: 'links',
+  },
 };
 
 function showHelp() {
@@ -73,6 +83,8 @@ Payment Commands:
 Link Commands (21cash integration):
   create-link         Create a payment link to sell content
   link-info <addr>    Get info about a payment link
+  routers             List routers where your wallet is a beneficiary
+  distribute <addr>   Distribute USDC from a PaymentRouter
 
 Options:
   -h, --help          Show this help
