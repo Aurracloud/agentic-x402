@@ -60,24 +60,20 @@ Shows:
     console.log('x402 Wallet Balance');
     console.log('===================');
     console.log('');
-    console.log(`Address: ${fullAddress ? address : truncateAddress(address)}`);
-    console.log(`Network: ${client.config.network} (chain ${client.config.chainId})`);
+    console.log(`Address: ${address}`);
+    const networkName = client.config.chainId === 8453 ? 'Base mainnet' : 'Base Sepolia';
+    console.log(`Network: ${networkName} (chain ${client.config.chainId})`);
     console.log('');
     console.log('Balances:');
     console.log(`  USDC: ${formatCrypto(usdc.formatted, 'USDC', 2)}`);
     console.log(`  ETH:  ${formatCrypto(eth.formatted, 'ETH', 6)}`);
 
     // Warnings
-    console.log('');
     const usdcNum = parseFloat(usdc.formatted);
-    const ethNum = parseFloat(eth.formatted);
 
     if (usdcNum < 1) {
+      console.log('');
       console.log('Warning: Low USDC balance. Fund your wallet to make payments.');
-    }
-
-    if (ethNum < 0.0001) {
-      console.log('Warning: Low ETH balance. You may need ETH for gas fees.');
     }
 
   } catch (error) {

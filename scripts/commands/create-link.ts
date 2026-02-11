@@ -123,7 +123,7 @@ Examples:
       console.log(`  Name: ${name}`);
       console.log(`  Price: ${formatUsd(parseFloat(price))}`);
       console.log(`  Creator: ${truncateAddress(creatorAddress)}`);
-      console.log(`  Network: ${config.network} (chain ${config.chainId})`);
+      console.log(`  Network: ${config.chainId === 8453 ? 'Base mainnet' : 'Base Sepolia'} (chain ${config.chainId})`);
       console.log('');
     }
 

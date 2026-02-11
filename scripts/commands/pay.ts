@@ -50,7 +50,8 @@ Examples:
   console.log(`Fetching: ${url}`);
   console.log(`Method: ${method}`);
   console.log(`Wallet: ${truncateAddress(client.account.address)}`);
-  console.log(`Network: ${client.config.network} (chain ${client.config.chainId})`);
+  const networkName = client.config.chainId === 8453 ? 'Base mainnet' : 'Base Sepolia';
+  console.log(`Network: ${networkName} (chain ${client.config.chainId})`);
   console.log('');
 
   try {
