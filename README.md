@@ -1,6 +1,6 @@
 # agentic-x402
 
-Agent skill for x402 payments - pay for and sell gated content using USDC on Base.
+Agent skill for x402 payments — pay for and sell gated content using USDC on Base.
 
 ## What is x402?
 
@@ -8,16 +8,47 @@ Agent skill for x402 payments - pay for and sell gated content using USDC on Bas
 
 This skill gives AI agents the ability to:
 - **Pay** for x402-gated resources automatically
-- **Create** payment links to sell content
-- **Manage** wallet balances
+- **Fetch** content with automatic payment handling
+- **Create** payment links to sell content (via 21.cash)
+- **Manage** wallet balances (USDC + ETH for gas)
 
 ## Installation
 
 ```bash
-# Clone or install
-pnpm install
+npm i -g agentic-x402
+```
 
-# Configure wallet
+Once installed, the `x402` command is available globally:
+
+```bash
+x402 --help
+x402 --version
+```
+
+### Configure
+
+Set your wallet private key (required):
+
+```bash
+export EVM_PRIVATE_KEY=0x...your_private_key...
+```
+
+Or create a persistent config file:
+
+```bash
+mkdir -p ~/.x402
+cat > ~/.x402/.env << 'EOF'
+EVM_PRIVATE_KEY=0x...your_private_key...
+X402_NETWORK=mainnet
+EOF
+```
+
+### Development / Local Install
+
+```bash
+git clone https://github.com/monemetrics/agentic-x402.git
+cd agentic-x402
+pnpm install
 cp config/example.env .env
 # Edit .env and add your EVM_PRIVATE_KEY
 ```
@@ -25,43 +56,193 @@ cp config/example.env .env
 ## Quick Start
 
 ```bash
-# Check balance
+# 1. Configure your wallet
+export EVM_PRIVATE_KEY=0x...your_private_key...
+
+# 2. Check balance
 x402 balance
 
-# Pay for a resource
+# 3. Pay for a resource
 x402 pay https://api.example.com/paid-endpoint
 
-# Fetch with auto-payment
+# 4. Fetch with auto-payment
 x402 fetch https://api.example.com/data --json
 
-# Create a payment link (requires x402-links-server)
+# 5. Create a payment link (requires x402-links-server)
 x402 create-link --name "My API" --price 1.00 --url https://api.example.com/premium
 ```
 
 ## Commands
 
-| Command | Description |
-|---------|-------------|
-| `x402 balance` | Check USDC and ETH balances |
-| `x402 pay <url>` | Pay for a gated resource |
-| `x402 fetch <url>` | Fetch with auto-payment |
-| `x402 create-link` | Create payment link |
-| `x402 link-info <addr>` | Get link details |
+### balance — Check Wallet Balances
+
+Show your wallet address, USDC balance (for payments), and ETH balance (for gas). Warns if either balance is low.
+
+```bash
+x402 balance
+x402 balance --json
+x402 balance --full
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | Output as JSON (address, network, chainId, balances) | — |
+| `--full` | Show full wallet address instead of truncated | — |
+| `-h, --help` | Show help | — |
+
+---
+
+### pay — Pay for an x402-Gated Resource
+
+Make a request to an x402-gated URL. If the server responds with HTTP 402, the CLI extracts payment requirements, verifies the amount is within your max limit, and automatically signs and sends payment. Shows the response body after successful payment.
+
+```bash
+x402 pay https://api.example.com/data
+x402 pay https://api.example.com/submit --method POST --body '{"data":"value"}'
+x402 pay https://api.example.com/data --max 5
+x402 pay https://api.example.com/data --dry-run
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<url>` | The URL of the x402-gated resource (positional) | **required** |
+| `--method` | HTTP method | `GET` |
+| `--body` | Request body (for POST/PUT requests) | — |
+| `--header` | Add custom header (can be used multiple times) | — |
+| `--max` | Maximum payment in USD (overrides config) | from config |
+| `--dry-run` | Show payment details without paying | — |
+| `-h, --help` | Show help | — |
+
+If the URL does not require payment (non-402 response), the response is returned directly.
+
+---
+
+### fetch — Fetch with Automatic Payment
+
+A simpler, pipe-friendly version of `pay`. Uses the x402 SDK's wrapped fetch to handle 402 responses automatically. Supports `--json` and `--raw` output modes for easy integration with scripts and agents.
+
+```bash
+x402 fetch https://api.example.com/data
+x402 fetch https://api.example.com/data --json
+x402 fetch https://api.example.com/data --raw
+x402 fetch https://api.example.com/submit --method POST --body '{"key":"value"}'
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<url>` | The URL to fetch (positional) | **required** |
+| `--method` | HTTP method | `GET` |
+| `--body` | Request body (for POST/PUT) | — |
+| `--header` | Add header as `"Key: Value"` | — |
+| `--json` | Output as JSON only (for piping to other tools) | — |
+| `--raw` | Output raw response body only (no headers or status) | — |
+| `-h, --help` | Show help | — |
+
+---
+
+### create-link — Create a Payment Link
+
+Create a payment link via the [21.cash](https://21.cash) x402-links-server. You can gate a URL or text content behind a USDC payment. Requires `X402_LINKS_API_URL` and `X402_LINKS_API_KEY` environment variables.
+
+```bash
+x402 create-link --name "Premium Guide" --price 5.00 --url https://mysite.com/guide.pdf
+x402 create-link --name "Secret Message" --price 0.50 --text "The secret is..."
+x402 create-link --name "API Access" --price 1.00 --url https://api.example.com/data --webhook https://mysite.com/webhook
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Name of the payment link | **required** |
+| `--price` | Price in USD (e.g., `"5.00"` or `"0.10"`) | **required** |
+| `--url` | URL to gate behind payment | — |
+| `--text` | Text content to gate behind payment | — |
+| `--desc` | Description of the link | — |
+| `--webhook` | Webhook URL for payment notifications | — |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
+
+> **Note:** Either `--url` or `--text` is required. The link is deployed as a smart contract on Base.
+
+---
+
+### link-info — Get Payment Link Details
+
+Look up details of a payment link by its router address or full URL.
+
+```bash
+x402 link-info 0x1234...5678
+x402 link-info https://21.cash/pay/0x1234...5678
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<address>` | Router contract address or full payment URL (positional) | **required** |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
 
 ## Configuration
 
-Required environment variables:
-- `EVM_PRIVATE_KEY` - Your wallet private key
+Config is loaded from these locations (in order of priority):
 
-Optional:
-- `X402_NETWORK` - `mainnet` or `testnet` (default: mainnet)
-- `X402_MAX_PAYMENT_USD` - Payment limit (default: 10)
-- `X402_LINKS_API_URL` - x402-links-server URL
-- `X402_LINKS_API_KEY` - API key for link creation
+1. Environment variables
+2. `.env` file in current directory
+3. `~/.x402/.env` (global config)
+
+### Environment Variables
+
+#### Required
+
+| Variable | Description |
+|----------|-------------|
+| `EVM_PRIVATE_KEY` | Your wallet private key (0x-prefixed). Used to sign payment authorizations. |
+
+#### Network Settings
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `X402_NETWORK` | `mainnet` (Base, chain 8453) or `testnet` (Base Sepolia, chain 84532) | `mainnet` |
+| `X402_MAX_PAYMENT_USD` | Safety limit — payments exceeding this are rejected unless `--max` is used | `10` |
+| `X402_FACILITATOR_URL` | Custom facilitator URL | Coinbase (mainnet) / x402.org (testnet) |
+| `X402_VERBOSE` | Enable verbose logging (`1` = on, `0` = off) | `0` |
+
+#### 21.cash Integration (for link commands)
+
+| Variable | Description |
+|----------|-------------|
+| `X402_LINKS_API_URL` | Base URL of x402-links-server (e.g., `https://21.cash`) |
+| `X402_LINKS_API_KEY` | API key for programmatic link creation |
+
+## Global Options
+
+| Flag | Description |
+|------|-------------|
+| `-h, --help` | Show help for a command |
+| `-v, --version` | Show CLI version |
+
+## CLI Reference
+
+| Category | Command | Description |
+|----------|---------|-------------|
+| **Info** | `balance` | Check wallet USDC and ETH balances |
+| **Payments** | `pay <url>` | Pay for an x402-gated resource (verbose output) |
+| **Payments** | `fetch <url>` | Fetch with auto-payment (pipe-friendly `--json`/`--raw`) |
+| **Links** | `create-link` | Create a payment link to sell content (21.cash) |
+| **Links** | `link-info <addr>` | Get info about a payment link |
 
 ## For Agents
 
-This skill is designed for use with AI agents (Claude Code, OpenClaw, etc.). See `SKILL.md` for the full agent-readable documentation.
+This skill is designed for use with AI agents (Claude Code, OpenClaw, etc.). The `SKILL.md` file contains full agent-readable documentation. Agents can use the `--json` flag on all commands for structured output:
+
+```bash
+# Structured balance output
+x402 balance --json
+
+# Pipe-friendly fetch
+x402 fetch https://api.example.com/data --json
+
+# Raw output for further processing
+x402 fetch https://api.example.com/data --raw
+```
 
 ## License
 
