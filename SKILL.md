@@ -23,20 +23,39 @@ Pay for x402-gated APIs and content using USDC on Base. This skill enables agent
 | `x402 create-link` | Create payment link (seller) |
 | `x402 link-info <addr>` | Get payment link details |
 
+## Installation
+
+```bash
+npm i -g agentic-x402
+```
+
+Once installed, the `x402` command is available globally:
+
+```bash
+x402 --help
+x402 --version
+```
+
 ## Setup
 
-1. Install dependencies:
+Configure your wallet private key (required):
+
 ```bash
-cd {baseDir} && npm install
+export EVM_PRIVATE_KEY=0x...your_private_key...
 ```
 
-2. Configure wallet (create `.env` in working directory):
+Or create a persistent config file:
+
 ```bash
+mkdir -p ~/.x402
+cat > ~/.x402/.env << 'EOF'
 EVM_PRIVATE_KEY=0x...your_private_key...
-X402_NETWORK=mainnet  # or testnet
+X402_NETWORK=mainnet
+EOF
 ```
 
-3. Verify setup:
+Verify setup:
+
 ```bash
 x402 balance
 ```
@@ -134,9 +153,11 @@ Check wallet balances.
 x402 balance [--json] [--full]
 ```
 
-Options:
-- `--json`: Output as JSON
-- `--full`: Show full addresses
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--json` | Output as JSON (address, network, chainId, balances) | — |
+| `--full` | Show full wallet address instead of truncated | — |
+| `-h, --help` | Show help | — |
 
 ### x402 pay
 
@@ -146,11 +167,15 @@ Pay for an x402-gated resource.
 x402 pay <url> [options]
 ```
 
-Options:
-- `--method <METHOD>`: HTTP method (default: GET)
-- `--body <JSON>`: Request body for POST/PUT
-- `--max <USD>`: Maximum payment limit
-- `--dry-run`: Preview without paying
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<url>` | The URL of the x402-gated resource (positional) | **required** |
+| `--method` | HTTP method | `GET` |
+| `--body` | Request body (for POST/PUT requests) | — |
+| `--header` | Add custom header (can be used multiple times) | — |
+| `--max` | Maximum payment in USD (overrides config) | from config |
+| `--dry-run` | Show payment details without paying | — |
+| `-h, --help` | Show help | — |
 
 ### x402 fetch
 
@@ -160,11 +185,15 @@ Fetch with automatic payment.
 x402 fetch <url> [options]
 ```
 
-Options:
-- `--method <METHOD>`: HTTP method (default: GET)
-- `--body <JSON>`: Request body
-- `--json`: Output JSON only (for piping)
-- `--raw`: Output raw response body
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<url>` | The URL to fetch (positional) | **required** |
+| `--method` | HTTP method | `GET` |
+| `--body` | Request body (for POST/PUT) | — |
+| `--header` | Add header as `"Key: Value"` | — |
+| `--json` | Output as JSON only (for piping to other tools) | — |
+| `--raw` | Output raw response body only (no headers or status) | — |
+| `-h, --help` | Show help | — |
 
 ### x402 create-link
 
@@ -174,18 +203,18 @@ Create a payment link.
 x402 create-link --name <name> --price <usd> [options]
 ```
 
-Required:
-- `--name <name>`: Link name
-- `--price <usd>`: Price in USD (e.g., "5.00")
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--name` | Name of the payment link | **required** |
+| `--price` | Price in USD (e.g., `"5.00"` or `"0.10"`) | **required** |
+| `--url` | URL to gate behind payment | — |
+| `--text` | Text content to gate behind payment | — |
+| `--desc` | Description of the link | — |
+| `--webhook` | Webhook URL for payment notifications | — |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
 
-Content (one required):
-- `--url <url>`: URL to gate
-- `--text <content>`: Text to gate
-
-Options:
-- `--desc <text>`: Description
-- `--webhook <url>`: Webhook for notifications
-- `--json`: Output as JSON
+> **Note:** Either `--url` or `--text` is required. The link is deployed as a smart contract on Base.
 
 ### x402 link-info
 
@@ -195,17 +224,24 @@ Get payment link details.
 x402 link-info <router-address> [--json]
 ```
 
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<address>` | Router contract address or full payment URL (positional) | **required** |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
+
 ## Environment Variables
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `EVM_PRIVATE_KEY` | Wallet private key | Required |
-| `X402_NETWORK` | `mainnet` or `testnet` | `mainnet` |
-| `X402_MAX_PAYMENT_USD` | Max payment limit | `10` |
-| `X402_FACILITATOR_URL` | Custom facilitator | Auto |
-| `X402_LINKS_API_URL` | x402-links-server URL | - |
-| `X402_LINKS_API_KEY` | API key for links | - |
-| `X402_VERBOSE` | Enable debug logging | `0` |
+| `EVM_PRIVATE_KEY` | Wallet private key (0x-prefixed) | **required** |
+| `X402_NETWORK` | `mainnet` (Base, chain 8453) or `testnet` (Base Sepolia, chain 84532) | `mainnet` |
+| `X402_MAX_PAYMENT_USD` | Safety limit — payments exceeding this are rejected unless `--max` is used | `10` |
+| `X402_FACILITATOR_URL` | Custom facilitator URL | Coinbase (mainnet) / x402.org (testnet) |
+| `X402_SLIPPAGE_BPS` | Slippage tolerance in basis points (100 bps = 1%) | `50` |
+| `X402_VERBOSE` | Enable verbose logging (`1` = on, `0` = off) | `0` |
+| `X402_LINKS_API_URL` | Base URL of x402-links-server (e.g., `https://21.cash`) | — |
+| `X402_LINKS_API_KEY` | API key for programmatic link creation | — |
 
 ## Supported Networks
 
@@ -242,7 +278,7 @@ Set your wallet private key:
 export EVM_PRIVATE_KEY=0x...
 ```
 
-Or create a `.env` file in your working directory.
+Or create a `.env` file in your working directory, or install globally and use `~/.x402/.env`.
 
 ### "Payment exceeds max limit"
 
@@ -274,4 +310,5 @@ Ensure your wallet has funds on the correct network:
 
 - [x402 Protocol Docs](https://docs.x402.org/)
 - [x402 GitHub](https://github.com/coinbase/x402)
+- [npm: agentic-x402](https://www.npmjs.com/package/agentic-x402)
 - [Base Network](https://base.org/)
