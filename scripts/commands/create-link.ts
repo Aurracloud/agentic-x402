@@ -56,7 +56,7 @@ Options:
   -h, --help   Show this help
 
 Environment:
-  X402_LINKS_API_URL   Base URL of x402-links-server (required)
+  X402_LINKS_API_URL   Base URL of x402-links-server (default: https://21.cash)
 
 Examples:
   x402 create-link --name "Premium Guide" --price 5.00 --url https://mysite.com/guide.pdf
@@ -67,12 +67,6 @@ Examples:
   }
 
   const config = getConfig();
-
-  if (!config.x402LinksApiUrl) {
-    console.error('Error: X402_LINKS_API_URL environment variable is required');
-    console.error('Set it to the base URL of your x402-links-server instance');
-    process.exit(1);
-  }
 
   const name = flags.name as string;
   const price = flags.price as string;
