@@ -130,7 +130,6 @@ Create payment links to monetize your own content using x402-links-server:
 Add to `.env`:
 ```bash
 X402_LINKS_API_URL=https://your-x402-links-server.com
-X402_LINKS_API_KEY=your_api_key
 ```
 
 ### Create a link
@@ -255,7 +254,6 @@ x402 link-info <router-address> [--json]
 | `X402_SLIPPAGE_BPS` | Slippage tolerance in basis points (100 bps = 1%) | `50` |
 | `X402_VERBOSE` | Enable verbose logging (`1` = on, `0` = off) | `0` |
 | `X402_LINKS_API_URL` | Base URL of x402-links-server (e.g., `https://21.cash`) | — |
-| `X402_LINKS_API_KEY` | API key for programmatic link creation | — |
 
 ## Supported Networks
 

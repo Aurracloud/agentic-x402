@@ -162,7 +162,7 @@ x402 fetch https://api.example.com/submit --method POST --body '{"key":"value"}'
 
 ### create-link — Create a Payment Link
 
-Create a payment link via the [21.cash](https://21.cash) x402-links-server. You can gate a URL or text content behind a USDC payment. Requires `X402_LINKS_API_URL` and `X402_LINKS_API_KEY` environment variables.
+Create a payment link via the [21.cash](https://21.cash) x402-links-server. You can gate a URL or text content behind a USDC payment. Requires `X402_LINKS_API_URL` environment variable. Link creation costs $0.10 USDC, paid automatically via x402.
 
 ```bash
 x402 create-link --name "Premium Guide" --price 5.00 --url https://mysite.com/guide.pdf
@@ -230,7 +230,6 @@ Config is loaded from these locations (in order of priority):
 | Variable | Description |
 |----------|-------------|
 | `X402_LINKS_API_URL` | Base URL of x402-links-server (e.g., `https://21.cash`) |
-| `X402_LINKS_API_KEY` | API key for programmatic link creation |
 
 ## Global Options
 

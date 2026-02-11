@@ -36,7 +36,6 @@ export interface X402Config {
 
   // 21cash integration (optional)
   x402LinksApiUrl?: string;
-  x402LinksApiKey?: string;
 
   // Defaults
   maxPaymentUsd: number;
@@ -73,7 +72,6 @@ export function getConfig(): X402Config {
     chainId,
     facilitatorUrl: getOptionalEnv('X402_FACILITATOR_URL', defaultFacilitator),
     x402LinksApiUrl: process.env.X402_LINKS_API_URL,
-    x402LinksApiKey: process.env.X402_LINKS_API_KEY,
     maxPaymentUsd: parseFloat(getOptionalEnv('X402_MAX_PAYMENT_USD', '10')),
     slippageBps: parseInt(getOptionalEnv('X402_SLIPPAGE_BPS', '50'), 10),
     verbose: getOptionalEnv('X402_VERBOSE', '0') === '1',
