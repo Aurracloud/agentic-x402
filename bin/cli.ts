@@ -11,10 +11,17 @@ const scriptsDir = resolve(__dirname, '../scripts');
 interface Command {
   script: string;
   description: string;
-  category: 'info' | 'payments' | 'links';
+  category: 'setup' | 'info' | 'payments' | 'links';
 }
 
 const commands: Record<string, Command> = {
+  // Setup commands
+  setup: {
+    script: 'commands/setup.ts',
+    description: 'Create or configure your x402 wallet',
+    category: 'setup',
+  },
+
   // Info commands
   balance: {
     script: 'commands/balance.ts',
@@ -53,6 +60,9 @@ x402 - Agent skill for x402 payments
 
 Usage: x402 <command> [arguments]
 
+Setup:
+  setup               Create or configure your x402 wallet
+
 Info Commands:
   balance             Check wallet USDC and ETH balances
 
@@ -68,26 +78,18 @@ Options:
   -h, --help          Show this help
   -v, --version       Show version
 
-Environment Variables:
-  EVM_PRIVATE_KEY       Wallet private key (required)
-  X402_NETWORK          Network: mainnet or testnet (default: mainnet)
-  X402_MAX_PAYMENT_USD  Max payment limit in USD (default: 10)
-  X402_FACILITATOR_URL  Custom facilitator URL
-  X402_LINKS_API_URL    x402-links-server URL (for link commands)
-  X402_LINKS_API_KEY    API key for x402-links-server
-
-Examples:
-  x402 balance
-  x402 pay https://api.example.com/data
-  x402 fetch https://api.example.com/resource --json
-  x402 create-link --name "Guide" --price 5.00 --url https://mysite.com/guide
+Getting Started:
+  1. Run "x402 setup" to create a new wallet
+  2. Fund your wallet with USDC on Base
+  3. Run "x402 balance" to verify
+  4. Use "x402 pay <url>" to pay for resources
 
 For command-specific help: x402 <command> --help
 `);
 }
 
 function showVersion() {
-  console.log('agentic-x402 v0.1.0');
+  console.log('agentic-x402 v0.2.1');
 }
 
 async function main() {

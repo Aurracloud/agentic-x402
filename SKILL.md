@@ -5,7 +5,7 @@ license: MIT
 compatibility: Requires Node.js 20+, network access to x402 facilitators and EVM chains
 metadata:
   author: monemetrics
-  version: "0.1.0"
+  version: "0.2.1"
 allowed-tools: Bash(x402:*) Bash(npm:*) Read
 ---
 
@@ -17,6 +17,7 @@ Pay for x402-gated APIs and content using USDC on Base. This skill enables agent
 
 | Command | Description |
 |---------|-------------|
+| `x402 setup` | Create or configure wallet |
 | `x402 balance` | Check USDC and ETH balances |
 | `x402 pay <url>` | Pay for a gated resource |
 | `x402 fetch <url>` | Fetch with auto-payment |
@@ -38,20 +39,33 @@ x402 --version
 
 ## Setup
 
-Configure your wallet private key (required):
+Run the interactive setup to create a new wallet:
+
+```bash
+x402 setup
+```
+
+This will:
+1. Generate a new wallet (recommended) or accept an existing key
+2. Save configuration to `~/.x402/.env`
+3. Display your wallet address for funding
+
+**Important:** Back up your private key immediately after setup!
+
+### Manual Configuration
+
+Alternatively, set the environment variable directly:
 
 ```bash
 export EVM_PRIVATE_KEY=0x...your_private_key...
 ```
 
-Or create a persistent config file:
+Or create a config file:
 
 ```bash
 mkdir -p ~/.x402
-cat > ~/.x402/.env << 'EOF'
-EVM_PRIVATE_KEY=0x...your_private_key...
-X402_NETWORK=mainnet
-EOF
+echo "EVM_PRIVATE_KEY=0x..." > ~/.x402/.env
+chmod 600 ~/.x402/.env
 ```
 
 Verify setup:
@@ -299,12 +313,53 @@ Ensure your wallet has funds on the correct network:
 - `X402_NETWORK=mainnet` → Base mainnet
 - `X402_NETWORK=testnet` → Base Sepolia
 
-## Security Notes
+## Backup Your Private Key
 
-- Never share your private key
-- Start with testnet to verify setup
-- Set reasonable payment limits
-- Review payment amounts before confirming
+Your private key is stored in `~/.x402/.env`. If lost, your funds cannot be recovered.
+
+### Recommended Backup Methods
+
+1. **Password Manager** (Recommended)
+   - Store in 1Password, Bitwarden, or similar
+   - Create a secure note with your private key
+   - Tag it for easy retrieval
+
+2. **Encrypted File**
+   ```bash
+   # Encrypt with GPG
+   gpg -c ~/.x402/.env
+   # Creates ~/.x402/.env.gpg - store this backup securely
+   ```
+
+3. **Paper Backup** (for larger amounts)
+   - Write down the private key
+   - Store in a safe or safety deposit box
+   - Never store digitally unencrypted
+
+### View Your Private Key
+
+```bash
+cat ~/.x402/.env | grep EVM_PRIVATE_KEY
+```
+
+### Recovery
+
+To restore from backup:
+```bash
+mkdir -p ~/.x402
+echo "EVM_PRIVATE_KEY=0x...your_backed_up_key..." > ~/.x402/.env
+chmod 600 ~/.x402/.env
+x402 balance  # verify
+```
+
+## Security Best Practices
+
+- **Use a dedicated wallet** — Never use your main wallet with automated agents
+- **Limit funds** — Only transfer what you need for payments
+- **Set payment limits** — Configure `X402_MAX_PAYMENT_USD` to cap exposure
+- **Test first** — Use `X402_NETWORK=testnet` with test tokens before mainnet
+- **Protect the config** — `~/.x402/.env` has 600 permissions; keep it that way
+- **Never share** — Your private key gives full access to your wallet
 
 ## Links
 

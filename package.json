@@ -1,6 +1,6 @@
 {
   "name": "agentic-x402",
-  "version": "0.1.2",
+  "version": "0.2.1",
   "description": "Agent skill for x402 payments - pay for and sell gated content",
   "type": "module",
   "bin": {
@@ -14,6 +14,7 @@
     "SKILL.md"
   ],
   "scripts": {
+    "setup": "tsx scripts/commands/setup.ts",
     "pay": "tsx scripts/commands/pay.ts",
     "fetch": "tsx scripts/commands/fetch-paid.ts",
     "balance": "tsx scripts/commands/balance.ts",

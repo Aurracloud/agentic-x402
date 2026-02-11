@@ -27,20 +27,26 @@ x402 --version
 
 ### Configure
 
-Set your wallet private key (required):
+Run the interactive setup to create a new wallet:
+
+```bash
+x402 setup
+```
+
+This will:
+1. Generate a new wallet (recommended) or accept an existing key
+2. Save configuration to `~/.x402/.env`
+3. Display your wallet address for funding
+4. Show your private key for backup
+
+**Back up your private key immediately!** See [Backup](#backup-your-private-key) below.
+
+#### Manual Configuration
+
+Alternatively, set the environment variable directly:
 
 ```bash
 export EVM_PRIVATE_KEY=0x...your_private_key...
-```
-
-Or create a persistent config file:
-
-```bash
-mkdir -p ~/.x402
-cat > ~/.x402/.env << 'EOF'
-EVM_PRIVATE_KEY=0x...your_private_key...
-X402_NETWORK=mainnet
-EOF
 ```
 
 ### Development / Local Install
@@ -56,23 +62,37 @@ cp config/example.env .env
 ## Quick Start
 
 ```bash
-# 1. Configure your wallet
-export EVM_PRIVATE_KEY=0x...your_private_key...
+# 1. Create a wallet
+x402 setup
 
-# 2. Check balance
+# 2. Fund your wallet with USDC on Base (send to the address shown)
+
+# 3. Check balance
 x402 balance
 
-# 3. Pay for a resource
+# 4. Pay for a resource
 x402 pay https://api.example.com/paid-endpoint
 
-# 4. Fetch with auto-payment
+# 5. Fetch with auto-payment
 x402 fetch https://api.example.com/data --json
 
-# 5. Create a payment link (requires x402-links-server)
+# 6. Create a payment link (requires x402-links-server)
 x402 create-link --name "My API" --price 1.00 --url https://api.example.com/premium
 ```
 
 ## Commands
+
+### setup — Create or Configure Wallet
+
+Interactive setup that generates a new wallet or accepts an existing private key. Saves configuration to `~/.x402/.env`.
+
+```bash
+x402 setup
+```
+
+**Security:** If you choose to use an existing private key, you'll see a warning. We recommend using a **dedicated wallet** with limited funds for automated agents.
+
+---
 
 ### balance — Check Wallet Balances
 
@@ -223,6 +243,7 @@ Config is loaded from these locations (in order of priority):
 
 | Category | Command | Description |
 |----------|---------|-------------|
+| **Setup** | `setup` | Create or configure your x402 wallet |
 | **Info** | `balance` | Check wallet USDC and ETH balances |
 | **Payments** | `pay <url>` | Pay for an x402-gated resource (verbose output) |
 | **Payments** | `fetch <url>` | Fetch with auto-payment (pipe-friendly `--json`/`--raw`) |
@@ -243,6 +264,50 @@ x402 fetch https://api.example.com/data --json
 # Raw output for further processing
 x402 fetch https://api.example.com/data --raw
 ```
+
+## Backup Your Private Key
+
+Your private key is stored in `~/.x402/.env`. **If lost, your funds cannot be recovered.**
+
+### Recommended Backup Methods
+
+1. **Password Manager** (Recommended)
+   - Store in 1Password, Bitwarden, or similar
+   - Create a secure note with your private key
+
+2. **Encrypted File**
+   ```bash
+   gpg -c ~/.x402/.env
+   # Store the encrypted .env.gpg file securely
+   ```
+
+3. **Paper Backup** (for larger amounts)
+   - Write down the private key
+   - Store in a safe or safety deposit box
+
+### View Your Private Key
+
+```bash
+cat ~/.x402/.env | grep EVM_PRIVATE_KEY
+```
+
+### Recovery
+
+```bash
+mkdir -p ~/.x402
+echo "EVM_PRIVATE_KEY=0x...your_backed_up_key..." > ~/.x402/.env
+chmod 600 ~/.x402/.env
+x402 balance  # verify
+```
+
+## Security Best Practices
+
+- **Use a dedicated wallet** — Never use your main wallet with automated agents
+- **Limit funds** — Only transfer what you need for payments
+- **Set payment limits** — Configure `X402_MAX_PAYMENT_USD` to cap exposure
+- **Test first** — Use `X402_NETWORK=testnet` before mainnet
+- **Protect the config** — Keep `~/.x402/.env` with 600 permissions
+- **Never share** — Your private key gives full access to your wallet
 
 ## License
 
