@@ -1,6 +1,6 @@
 {
   "name": "agentic-x402",
-  "version": "0.2.33",
+  "version": "0.2.4",
   "description": "Agent skill for x402 payments - pay for and sell gated content",
   "type": "module",
   "bin": {
