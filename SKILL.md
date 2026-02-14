@@ -3,9 +3,8 @@ name: agentic-x402
 description: Make x402 payments to access gated APIs and content. Fetch paid resources, check wallet balance, and create payment links. Use when encountering 402 Payment Required responses or when the user wants to pay for web resources with crypto.
 license: MIT
 compatibility: Requires Node.js 20+, network access to x402 facilitators and EVM chains
-metadata:
-  author: monemetrics
-  version: "0.2.1"
+homepage: https://www.npmjs.com/package/agentic-x402
+metadata: {"author": "monemetrics", "version": "0.2.6", "openclaw": {"requires": {"bins": ["x402"], "env": ["EVM_PRIVATE_KEY"]}, "primaryEnv": "EVM_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "agentic-x402", "bins": ["x402"], "label": "Install agentic-x402 (npm)"}]}}
 allowed-tools: Bash(x402:*) Bash(npm:*) Read
 ---
 
