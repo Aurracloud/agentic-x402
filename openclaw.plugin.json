@@ -1,7 +1,7 @@
 {
   "id": "agentic-x402",
   "name": "x402 Payments",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Agent skill for x402 payments — pay for and sell gated content with background payment watching",
   "skills": ["./skills/x402"],
   "configSchema": {
@@ -26,6 +26,10 @@
         "type": "string",
         "default": "https://21.cash",
         "description": "Base URL of the x402 links API (21.cash)"
+      },
+      "hooksToken": {
+        "type": "string",
+        "description": "Bearer token for gateway hooks endpoint (must match hooks.token in gateway config). Falls back to OPENCLAW_HOOKS_TOKEN env var."
       },
       "watcher": {
         "type": "object",
@@ -68,6 +72,11 @@
     "x402LinksApiUrl": {
       "label": "21.cash API URL",
       "placeholder": "https://21.cash"
+    },
+    "hooksToken": {
+      "label": "Hooks Token",
+      "sensitive": true,
+      "placeholder": "your-hooks-secret"
     }
   }
 }

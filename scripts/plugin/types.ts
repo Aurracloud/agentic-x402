@@ -67,6 +67,7 @@ export interface X402PluginConfig {
   network?: 'mainnet' | 'testnet';
   maxPaymentUsd?: number;
   x402LinksApiUrl?: string;
+  hooksToken?: string;
   watcher?: {
     enabled?: boolean;
     pollIntervalMs?: number;

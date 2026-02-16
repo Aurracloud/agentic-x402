@@ -26,6 +26,7 @@ export default {
       watcher = new PaymentWatcher({
         logger,
         gatewayPort,
+        hooksToken: pluginConfig.hooksToken,
         pollIntervalMs: pluginConfig.watcher?.pollIntervalMs,
         notifyOnPayment: pluginConfig.watcher?.notifyOnPayment,
       });

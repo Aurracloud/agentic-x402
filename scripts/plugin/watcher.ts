@@ -20,6 +20,7 @@ const ERC20_BALANCE_ABI = [{
 interface WatcherOptions {
   logger: PluginLogger;
   gatewayPort: number;
+  hooksToken?: string;
   pollIntervalMs?: number;
   notifyOnPayment?: boolean;
 }
@@ -29,6 +30,7 @@ export class PaymentWatcher implements PluginService {
 
   private logger: PluginLogger;
   private gatewayPort: number;
+  private hooksToken: string | undefined;
   private pollIntervalMs: number;
   private notifyOnPayment: boolean;
 
@@ -42,6 +44,7 @@ export class PaymentWatcher implements PluginService {
   constructor(options: WatcherOptions) {
     this.logger = options.logger;
     this.gatewayPort = options.gatewayPort;
+    this.hooksToken = options.hooksToken || process.env.OPENCLAW_HOOKS_TOKEN;
     this.pollIntervalMs = options.pollIntervalMs ?? 30_000;
     this.notifyOnPayment = options.notifyOnPayment ?? true;
   }
@@ -208,23 +211,33 @@ export class PaymentWatcher implements PluginService {
 
   private async sendHook(event: PaymentEvent): Promise<void> {
     const port = this.gatewayPort || 18789;
+
+    if (!this.hooksToken) {
+      this.logger.warn('No hooks token configured — skipping hook delivery. Set hooksToken in plugin config or OPENCLAW_HOOKS_TOKEN env var.');
+      return;
+    }
+
     const hookUrl = `http://127.0.0.1:${port}/hooks/agent`;
 
     try {
       const response = await fetch(hookUrl, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.hooksToken}`,
+        },
         body: JSON.stringify({
+          message: `Payment detected on ${event.routerName}: +${event.increase} USDC (${event.previousBalance} → ${event.newBalance}). Router: ${event.routerAddress}`,
           name: 'x402-payment',
           wakeMode: 'now',
-          data: event,
         }),
       });
 
-      if (!response.ok) {
-        this.logger.warn(`Hook POST failed: ${response.status} ${response.statusText}`);
-      } else {
+      // /hooks/agent returns 202 on success (async run started)
+      if (response.status === 202 || response.ok) {
         this.logger.debug(`Hook delivered for payment on ${event.routerName}`);
+      } else {
+        this.logger.warn(`Hook POST failed: ${response.status} ${response.statusText}`);
       }
     } catch (err) {
       this.logger.warn(`Hook POST error: ${err instanceof Error ? err.message : String(err)}`);
