@@ -266,6 +266,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         properties: {
           withBalances: { type: 'boolean', description: 'Fetch on-chain USDC balance for each router' },
         },
+        required: [],
       },
       async execute(params) {
         const withBalances = params.withBalances as boolean | undefined;

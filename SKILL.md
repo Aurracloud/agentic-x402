@@ -1,5 +1,5 @@
 ---
-name: agentic-x402
+name: x402
 description: Make x402 payments to access gated APIs and content. Fetch paid resources, check wallet balance, create payment links, monitor routers for incoming payments, and distribute funds. Use when encountering 402 Payment Required responses or when the user wants to pay for web resources with crypto. Also available as an OpenClaw plugin with background payment watching and 8 agent tools.
 license: MIT
 compatibility: Requires Node.js 20+, network access to x402 facilitators and EVM chains

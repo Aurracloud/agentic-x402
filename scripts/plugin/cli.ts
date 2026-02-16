@@ -1,6 +1,7 @@
 // CLI commands for the OpenClaw plugin
 // Registered via api.registerCli with Commander.js-style program
 
+import { getWalletAddress } from '../core/client.js';
 import type { PluginLogger, OpenClawPluginApi } from './types.js';
 import type { PaymentWatcher } from './watcher.js';
 
@@ -66,6 +67,7 @@ export function registerCliCommands(
         }
 
         const status = watcher.getStatus();
+        const address = getWalletAddress();
 
         console.log('x402 Payment Watcher Status');
         console.log('===========================\n');
@@ -73,6 +75,7 @@ export function registerCliCommands(
         console.log(`Poll interval:     ${status.pollIntervalMs / 1000}s`);
         console.log(`Payments detected: ${status.paymentsDetected}`);
         console.log(`Last poll:         ${status.lastPollAt ?? 'Never'}`);
+        console.log(`Wallet address:    ${address}`);
 
         if (status.trackedRouters.length === 0) {
           console.log('\nNo routers tracked yet.');
