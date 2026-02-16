@@ -1,10 +1,10 @@
 ---
 name: agentic-x402
-description: Make x402 payments to access gated APIs and content. Fetch paid resources, check wallet balance, and create payment links. Use when encountering 402 Payment Required responses or when the user wants to pay for web resources with crypto.
+description: Make x402 payments to access gated APIs and content. Fetch paid resources, check wallet balance, create payment links, monitor routers for incoming payments, and distribute funds. Use when encountering 402 Payment Required responses or when the user wants to pay for web resources with crypto. Also available as an OpenClaw plugin with background payment watching and 8 agent tools.
 license: MIT
 compatibility: Requires Node.js 20+, network access to x402 facilitators and EVM chains
 homepage: https://www.npmjs.com/package/agentic-x402
-metadata: {"author": "monemetrics", "version": "0.2.6", "openclaw": {"requires": {"bins": ["x402"], "env": ["EVM_PRIVATE_KEY"]}, "primaryEnv": "EVM_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "agentic-x402", "bins": ["x402"], "label": "Install agentic-x402 (npm)"}]}}
+metadata: {"author": "monemetrics", "version": "0.3.0", "openclaw": {"requires": {"bins": ["x402"], "env": ["EVM_PRIVATE_KEY"]}, "primaryEnv": "EVM_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "agentic-x402", "bins": ["x402"], "label": "Install agentic-x402 (npm)"}], "plugin": true}}
 allowed-tools: Bash(x402:*) Bash(npm:*) Read
 ---
 
@@ -22,6 +22,90 @@ Pay for x402-gated APIs and content using USDC on Base. This skill enables agent
 | `x402 fetch <url>` | Fetch with auto-payment |
 | `x402 create-link` | Create payment link (seller) |
 | `x402 link-info <addr>` | Get payment link details |
+| `x402 routers` | List routers where your wallet is a beneficiary |
+| `x402 distribute <addr>` | Distribute USDC from a PaymentRouter |
+
+## OpenClaw Plugin
+
+When installed as an OpenClaw plugin, agentic-x402 provides **8 agent tools** and a **background payment watcher** — no CLI required.
+
+### Install as Plugin
+
+```bash
+openclaw plugins install agentic-x402
+```
+
+### Agent Tools
+
+When running inside OpenClaw, the agent can call these tools directly (no shell commands needed):
+
+| Tool | Description |
+|------|-------------|
+| `x402_balance` | Check wallet USDC + ETH balances |
+| `x402_pay` | Pay for x402-gated resource (supports dry-run) |
+| `x402_fetch` | Fetch URL with automatic payment |
+| `x402_create_link` | Create payment link via 21.cash |
+| `x402_link_info` | Get link details by router address |
+| `x402_routers` | List beneficiary routers (optional balances) |
+| `x402_distribute` | Distribute USDC from a router |
+| `x402_watcher_status` | Get watcher state (tracked routers, payments detected) |
+
+All tools return structured JSON. Parameters use camelCase (e.g., `routerAddress`, `maxPaymentUsd`, `withBalances`).
+
+### Background Payment Watcher
+
+The plugin includes a background service that monitors your payment routers for incoming USDC:
+
+- Fetches your routers from the 21.cash API
+- Polls USDC `balanceOf` for each router onchain (free view call, no gas)
+- Detects balance increases and triggers a hook at `/hooks/agent` with payment details
+- Configurable poll interval (default 30s)
+- First poll seeds state without triggering notifications (no false positives on restart)
+
+When a payment is detected, the watcher sends a hook with:
+```json
+{
+  "name": "x402-payment",
+  "wakeMode": "now",
+  "data": {
+    "routerAddress": "0x...",
+    "routerName": "My Link",
+    "previousBalance": "10.00",
+    "newBalance": "15.00",
+    "increase": "5.00",
+    "detectedAt": "2025-01-15T12:00:00.000Z"
+  }
+}
+```
+
+### Plugin Configuration
+
+All config is optional — zero-config if `~/.x402/.env` exists. Config priority:
+
+1. Environment variables (highest)
+2. Plugin config (from OpenClaw)
+3. `~/.x402/.env` (dotenv)
+4. Hardcoded defaults
+
+Plugin config keys (set in OpenClaw):
+
+| Key | Description | Default |
+|-----|-------------|---------|
+| `evmPrivateKey` | EVM private key (0x-prefixed) | from env |
+| `network` | `mainnet` or `testnet` | `mainnet` |
+| `maxPaymentUsd` | Max payment limit in USD | `10` |
+| `x402LinksApiUrl` | 21.cash API URL | `https://21.cash` |
+| `watcher.enabled` | Enable background payment watcher | `true` |
+| `watcher.pollIntervalMs` | Poll interval in ms | `30000` |
+| `watcher.notifyOnPayment` | Send hook on payment detection | `true` |
+
+### Plugin CLI Commands
+
+```bash
+openclaw x402 watch              # Start watcher in foreground (debugging)
+openclaw x402 watch --interval 10000   # Custom poll interval
+openclaw x402 status             # Show watcher state, tracked routers, payment count
+```
 
 ## Installation
 
@@ -154,6 +238,42 @@ x402 create-link --name "Guide" --price 5.00 --url https://mysite.com/guide --we
 x402 link-info 0x1234...5678
 x402 link-info https://21.cash/pay/0x1234...5678
 ```
+
+## Managing Routers
+
+### List your routers
+
+See all payment routers where your wallet is a beneficiary:
+
+```bash
+x402 routers
+x402 routers --with-balance    # Include on-chain USDC balances
+x402 routers --json
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--with-balance` | Fetch on-chain USDC balance for each router | — |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
+
+### Distribute funds
+
+Withdraw accumulated USDC from a PaymentRouter contract:
+
+```bash
+x402 distribute 0x1234...5678
+x402 distribute 0x1234...5678 --amount 5.00
+x402 distribute 0x1234...5678 --force --json
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<router-address>` | PaymentRouter contract address (positional) | **required** |
+| `--amount` | Specific USDC amount to distribute (defaults to full balance) | full balance |
+| `--force` | Skip gas balance warning | — |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
 
 ## Command Reference
 

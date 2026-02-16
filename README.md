@@ -11,6 +11,8 @@ This skill gives AI agents the ability to:
 - **Fetch** content with automatic payment handling
 - **Create** payment links to sell content (via 21.cash)
 - **Manage** wallet balances (USDC + ETH for gas)
+- **Monitor** payment routers for incoming payments (background watcher)
+- **Distribute** accumulated funds from routers
 
 ## Installation
 
@@ -78,6 +80,99 @@ x402 fetch https://api.example.com/data --json
 
 # 6. Create a payment link (requires x402-links-server)
 x402 create-link --name "My API" --price 1.00 --url https://api.example.com/premium
+
+# 7. List your routers and check balances
+x402 routers --with-balance
+
+# 8. Withdraw accumulated funds
+x402 distribute 0x1234...5678
+```
+
+## OpenClaw Plugin
+
+agentic-x402 works as an [OpenClaw](https://openclaw.dev) plugin, providing **8 agent tools** and a **background payment watcher** with zero CLI required.
+
+### Install as Plugin
+
+```bash
+openclaw plugins install agentic-x402
+```
+
+All configuration is optional — the plugin picks up your existing `~/.x402/.env` automatically.
+
+### Agent Tools
+
+When running inside OpenClaw, the agent can call these tools directly:
+
+| Tool | Description |
+|------|-------------|
+| `x402_balance` | Check wallet USDC + ETH balances |
+| `x402_pay` | Pay for x402-gated resource (supports dry-run) |
+| `x402_fetch` | Fetch URL with automatic payment |
+| `x402_create_link` | Create payment link via 21.cash |
+| `x402_link_info` | Get link details by router address |
+| `x402_routers` | List beneficiary routers (optional balances) |
+| `x402_distribute` | Distribute USDC from a router |
+| `x402_watcher_status` | Get watcher state (tracked routers, payments detected) |
+
+All tools return structured JSON. Parameters use camelCase (e.g., `routerAddress`, `maxPaymentUsd`, `withBalances`).
+
+### Background Payment Watcher
+
+The plugin includes a background service that monitors your payment routers for incoming USDC:
+
+- Fetches your routers from the 21.cash API
+- Polls USDC `balanceOf` for each router onchain (free view call, no gas)
+- Detects balance increases and triggers a hook at `/hooks/agent` with payment details
+- Configurable poll interval (default 30s)
+- First poll seeds state without false positives on restart
+
+When a payment is detected, the watcher POSTs to `http://127.0.0.1:<port>/hooks/agent`:
+
+```json
+{
+  "name": "x402-payment",
+  "wakeMode": "now",
+  "data": {
+    "routerAddress": "0x...",
+    "routerName": "My Link",
+    "previousBalance": "10.00",
+    "newBalance": "15.00",
+    "increase": "5.00",
+    "detectedAt": "2025-01-15T12:00:00.000Z"
+  }
+}
+```
+
+This eliminates the need to expose your gateway externally or use a tunnel for webhook delivery.
+
+### Plugin Configuration
+
+All config is optional. Config priority:
+
+1. Environment variables (highest)
+2. Plugin config (from OpenClaw)
+3. `~/.x402/.env` (dotenv)
+4. Hardcoded defaults
+
+Plugin config keys (set in OpenClaw):
+
+| Key | Description | Default |
+|-----|-------------|---------|
+| `evmPrivateKey` | EVM private key (0x-prefixed) | from env |
+| `network` | `mainnet` or `testnet` | `mainnet` |
+| `maxPaymentUsd` | Max payment limit in USD | `10` |
+| `x402LinksApiUrl` | 21.cash API URL | `https://21.cash` |
+| `watcher.enabled` | Enable background payment watcher | `true` |
+| `watcher.pollIntervalMs` | Poll interval in ms | `30000` |
+| `watcher.notifyOnPayment` | Send hook on payment detection | `true` |
+
+### Plugin CLI Commands
+
+```bash
+openclaw x402 watch                    # Start watcher in foreground (debugging)
+openclaw x402 watch --interval 10000   # Custom poll interval
+openclaw x402 status                   # Show watcher state and payment count
 ```
 
 ## Commands
@@ -200,13 +295,52 @@ x402 link-info https://21.cash/pay/0x1234...5678
 | `--json` | Output as JSON | — |
 | `-h, --help` | Show help | — |
 
+---
+
+### routers — List Your Payment Routers
+
+See all payment routers where your wallet is a beneficiary. Optionally fetch on-chain USDC balances.
+
+```bash
+x402 routers
+x402 routers --with-balance
+x402 routers --json
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `--with-balance` | Fetch on-chain USDC balance for each router | — |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
+
+---
+
+### distribute — Withdraw Funds from a Router
+
+Distribute accumulated USDC from a PaymentRouter contract. Calls the router's `distribute()` function on-chain.
+
+```bash
+x402 distribute 0x1234...5678
+x402 distribute 0x1234...5678 --amount 5.00
+x402 distribute 0x1234...5678 --force --json
+```
+
+| Flag | Description | Default |
+|------|-------------|---------|
+| `<router-address>` | PaymentRouter contract address (positional) | **required** |
+| `--amount` | Specific USDC amount to distribute (defaults to full balance) | full balance |
+| `--force` | Skip gas balance warning | — |
+| `--json` | Output as JSON | — |
+| `-h, --help` | Show help | — |
+
 ## Configuration
 
 Config is loaded from these locations (in order of priority):
 
 1. Environment variables
-2. `.env` file in current directory
-3. `~/.x402/.env` (global config)
+2. Plugin config (when running as OpenClaw plugin)
+3. `.env` file in current directory
+4. `~/.x402/.env` (global config)
 
 ### Environment Variables
 
@@ -248,6 +382,8 @@ Config is loaded from these locations (in order of priority):
 | **Payments** | `fetch <url>` | Fetch with auto-payment (pipe-friendly `--json`/`--raw`) |
 | **Links** | `create-link` | Create a payment link to sell content (21.cash) |
 | **Links** | `link-info <addr>` | Get info about a payment link |
+| **Routers** | `routers` | List routers where your wallet is a beneficiary |
+| **Routers** | `distribute <addr>` | Distribute USDC from a PaymentRouter |
 
 ## For Agents
 
@@ -262,7 +398,12 @@ x402 fetch https://api.example.com/data --json
 
 # Raw output for further processing
 x402 fetch https://api.example.com/data --raw
+
+# Router balances as JSON
+x402 routers --with-balance --json
 ```
+
+When installed as an OpenClaw plugin, agents get native tool access (`x402_balance`, `x402_pay`, etc.) without needing shell commands at all.
 
 ## Backup Your Private Key
 
