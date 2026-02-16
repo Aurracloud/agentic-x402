@@ -11,11 +11,11 @@ export default {
   name: 'x402 Payments',
 
   register(api: OpenClawPluginApi): void {
-    const { logger, config, gatewayPort } = api;
-    const pluginConfig = config as X402PluginConfig;
+    const { logger, gatewayPort } = api;
+    const pluginConfig = (api.pluginConfig ?? {}) as X402PluginConfig;
 
     // 1. Apply config bridge: inject plugin config → process.env
-    applyConfigBridge(config);
+    applyConfigBridge(pluginConfig);
     logger.debug('x402 config bridge applied');
 
     // 2. Register background watcher service (unless disabled)

@@ -52,6 +52,7 @@ export interface CliCommand {
 export interface OpenClawPluginApi {
   logger: PluginLogger;
   config: Record<string, unknown>;
+  pluginConfig?: Record<string, unknown>;
   gatewayPort: number;
   registerService(service: PluginService): void;
   registerTool(tool: PluginTool): void;

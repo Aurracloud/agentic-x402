@@ -3,7 +3,7 @@
 
 import type { X402PluginConfig } from './types.js';
 
-const CONFIG_MAP: Record<keyof Omit<X402PluginConfig, 'watcher'>, string> = {
+const CONFIG_MAP: Record<keyof Omit<X402PluginConfig, 'watcher' | 'hooksToken'>, string> = {
   evmPrivateKey: 'EVM_PRIVATE_KEY',
   network: 'X402_NETWORK',
   maxPaymentUsd: 'X402_MAX_PAYMENT_USD',
@@ -23,7 +23,7 @@ export function applyConfigBridge(pluginConfig: Record<string, unknown>): void {
   const config = pluginConfig as X402PluginConfig;
 
   for (const [key, envVar] of Object.entries(CONFIG_MAP)) {
-    const value = config[key as keyof Omit<X402PluginConfig, 'watcher'>];
+    const value = config[key as keyof Omit<X402PluginConfig, 'watcher' | 'hooksToken'>];
     if (value !== undefined && value !== null && !process.env[envVar]) {
       process.env[envVar] = String(value);
     }
