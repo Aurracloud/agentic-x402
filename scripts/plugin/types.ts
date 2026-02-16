@@ -15,24 +15,33 @@ export interface PluginService {
   stop(): Promise<void>;
 }
 
-/** JSON Schema for tool input parameters */
-export interface ToolInputSchema {
+/** JSON Schema for tool parameters */
+export interface ToolParameters {
   type: 'object';
   properties: Record<string, {
     type: string;
-    description: string;
+    description?: string;
     enum?: string[];
     default?: unknown;
   }>;
   required?: string[];
 }
 
+/** Tool result content block */
+export interface ToolResultContent {
+  type: 'text';
+  text: string;
+}
+
 /** An agent tool registered by a plugin */
 export interface PluginTool {
   name: string;
   description: string;
-  inputSchema: ToolInputSchema;
-  execute(params: Record<string, unknown>): Promise<unknown>;
+  parameters: ToolParameters;
+  execute(toolCallId: string, params: Record<string, unknown>): Promise<{
+    content: ToolResultContent[];
+    details?: unknown;
+  }>;
 }
 
 /** Commander.js-style program for CLI registration */

@@ -4,20 +4,28 @@
 import type { PluginTool } from './types.js';
 import type { PaymentWatcher } from './watcher.js';
 
+/** Helper to wrap a result as OpenClaw tool response */
+function json(payload: unknown) {
+  return {
+    content: [{ type: 'text' as const, text: JSON.stringify(payload, null, 2) }],
+    details: payload,
+  };
+}
+
 export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
   return [
     // 1. x402_balance
     {
       name: 'x402_balance',
       description: 'Check wallet USDC and ETH balances on Base',
-      inputSchema: { type: 'object', properties: {}, required: [] },
-      async execute() {
+      parameters: { type: 'object', properties: {} },
+      async execute(_toolCallId, _params) {
         const { getClient, getWalletAddress, getUsdcBalance, getEthBalance } = await import('../core/client.js');
         const client = getClient();
         const address = getWalletAddress();
         const [usdc, eth] = await Promise.all([getUsdcBalance(), getEthBalance()]);
 
-        return {
+        return json({
           address,
           network: client.config.network,
           chainId: client.config.chainId,
@@ -25,7 +33,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
             usdc: { raw: usdc.raw.toString(), formatted: usdc.formatted },
             eth: { raw: eth.raw.toString(), formatted: eth.formatted },
           },
-        };
+        });
       },
     },
 
@@ -33,7 +41,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_pay',
       description: 'Pay for an x402-gated resource. Returns the response body after payment.',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           url: { type: 'string', description: 'URL of the x402-gated resource' },
@@ -44,7 +52,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         },
         required: ['url'],
       },
-      async execute(params) {
+      async execute(_toolCallId, params) {
         const url = params.url as string;
         const method = (params.method as string) || 'GET';
         const body = params.body as string | undefined;
@@ -65,7 +73,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
           const responseBody = contentType?.includes('json')
             ? await probe.json()
             : await probe.text();
-          return { paid: false, status: probe.status, response: responseBody };
+          return json({ paid: false, status: probe.status, response: responseBody });
         }
 
         // Parse payment info
@@ -84,18 +92,18 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         const effectiveMax = maxPaymentUsd ?? client.config.maxPaymentUsd;
 
         if (priceNum > effectiveMax) {
-          return { paid: false, error: `Price $${priceNum} exceeds max $${effectiveMax}`, paymentInfo };
+          return json({ paid: false, error: `Price $${priceNum} exceeds max $${effectiveMax}`, paymentInfo });
         }
 
         if (dryRun) {
-          return { paid: false, dryRun: true, price: priceNum, paymentInfo };
+          return json({ paid: false, dryRun: true, price: priceNum, paymentInfo });
         }
 
         // Execute payment
         const response = await client.fetchWithPayment(url, { method, body, headers });
 
         if (!response.ok) {
-          return { paid: false, error: `${response.status} ${response.statusText}` };
+          return json({ paid: false, error: `${response.status} ${response.statusText}` });
         }
 
         const contentType = response.headers.get('content-type');
@@ -112,7 +120,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
           } catch { /* */ }
         }
 
-        return { paid: true, price: priceNum, transactionHash: txHash, response: responseBody };
+        return json({ paid: true, price: priceNum, transactionHash: txHash, response: responseBody });
       },
     },
 
@@ -120,7 +128,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_fetch',
       description: 'Fetch a URL with automatic x402 payment handling. Simpler than x402_pay — just returns the content.',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           url: { type: 'string', description: 'URL to fetch' },
@@ -129,7 +137,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         },
         required: ['url'],
       },
-      async execute(params) {
+      async execute(_toolCallId, params) {
         const url = params.url as string;
         const method = (params.method as string) || 'GET';
         const body = params.body as string | undefined;
@@ -143,7 +151,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         const response = await client.fetchWithPayment(url, { method, body, headers });
 
         if (!response.ok) {
-          return { success: false, status: response.status, error: response.statusText };
+          return json({ success: false, status: response.status, error: response.statusText });
         }
 
         const contentType = response.headers.get('content-type');
@@ -151,7 +159,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
           ? await response.json()
           : await response.text();
 
-        return { success: true, status: response.status, response: responseBody };
+        return json({ success: true, status: response.status, response: responseBody });
       },
     },
 
@@ -159,7 +167,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_create_link',
       description: 'Create a payment link via 21.cash to sell gated content',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           name: { type: 'string', description: 'Name of the payment link' },
@@ -171,7 +179,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         },
         required: ['name', 'price'],
       },
-      async execute(params) {
+      async execute(_toolCallId, params) {
         const name = params.name as string;
         const price = params.price as string;
         const gatedUrl = params.url as string | undefined;
@@ -180,7 +188,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         const webhookUrl = params.webhookUrl as string | undefined;
 
         if (!gatedUrl && !gatedText) {
-          return { success: false, error: 'Either url or text is required' };
+          return json({ success: false, error: 'Either url or text is required' });
         }
 
         const { getClient, getWalletAddress } = await import('../core/client.js');
@@ -210,10 +218,10 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
 
         const data = await response.json();
         if (!response.ok || !(data as Record<string, unknown>).success) {
-          return { success: false, error: (data as Record<string, unknown>).error ?? 'Unknown error' };
+          return json({ success: false, error: (data as Record<string, unknown>).error ?? 'Unknown error' });
         }
 
-        return data;
+        return json(data);
       },
     },
 
@@ -221,14 +229,14 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_link_info',
       description: 'Get details about a payment link by router address',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           routerAddress: { type: 'string', description: 'Router contract address or payment URL' },
         },
         required: ['routerAddress'],
       },
-      async execute(params) {
+      async execute(_toolCallId, params) {
         let routerAddress = params.routerAddress as string;
 
         // Extract address from URL if needed
@@ -239,7 +247,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         }
 
         if (!routerAddress.startsWith('0x') || routerAddress.length !== 42) {
-          return { success: false, error: 'Invalid router address' };
+          return json({ success: false, error: 'Invalid router address' });
         }
 
         const { getConfig } = await import('../core/config.js');
@@ -250,10 +258,10 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         const data = await response.json();
 
         if (!response.ok || !(data as Record<string, unknown>).success) {
-          return { success: false, error: (data as Record<string, unknown>).error ?? 'Link not found' };
+          return json({ success: false, error: (data as Record<string, unknown>).error ?? 'Link not found' });
         }
 
-        return data;
+        return json(data);
       },
     },
 
@@ -261,14 +269,13 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_routers',
       description: 'List payment routers where your wallet is a beneficiary',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           withBalances: { type: 'boolean', description: 'Fetch on-chain USDC balance for each router' },
         },
-        required: [],
       },
-      async execute(params) {
+      async execute(_toolCallId, params) {
         const withBalances = params.withBalances as boolean | undefined;
 
         const { getWalletAddress } = await import('../core/client.js');
@@ -282,13 +289,13 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         const data = await response.json() as { success: boolean; links?: Array<Record<string, unknown>>; error?: string };
 
         if (!response.ok || !data.success) {
-          return { success: false, error: data.error ?? 'Failed to fetch routers' };
+          return json({ success: false, error: data.error ?? 'Failed to fetch routers' });
         }
 
         const links = data.links ?? [];
 
         if (!withBalances) {
-          return {
+          return json({
             success: true,
             address,
             routers: links.map((l) => ({
@@ -298,7 +305,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
               sharePercent: l.beneficiary_percentage,
               createdAt: l.created_at,
             })),
-          };
+          });
         }
 
         // Fetch balances
@@ -340,7 +347,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
           };
         }));
 
-        return { success: true, address, routers };
+        return json({ success: true, address, routers });
       },
     },
 
@@ -348,7 +355,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_distribute',
       description: 'Distribute (withdraw) USDC from a PaymentRouter contract',
-      inputSchema: {
+      parameters: {
         type: 'object',
         properties: {
           routerAddress: { type: 'string', description: 'PaymentRouter contract address' },
@@ -356,12 +363,12 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         },
         required: ['routerAddress'],
       },
-      async execute(params) {
+      async execute(_toolCallId, params) {
         const routerAddress = params.routerAddress as string;
         const specifiedAmount = params.amount as string | undefined;
 
         if (!routerAddress.startsWith('0x') || routerAddress.length !== 42) {
-          return { success: false, error: 'Invalid router address' };
+          return json({ success: false, error: 'Invalid router address' });
         }
 
         const { getClient } = await import('../core/client.js');
@@ -400,17 +407,17 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
         });
 
         if (routerBalance === 0n) {
-          return { success: false, error: 'Router has no USDC balance to distribute' };
+          return json({ success: false, error: 'Router has no USDC balance to distribute' });
         }
 
         let distributeAmount: bigint;
         if (specifiedAmount) {
           distributeAmount = parseUnits(specifiedAmount, 6);
           if (distributeAmount > routerBalance) {
-            return {
+            return json({
               success: false,
               error: `Requested ${specifiedAmount} USDC exceeds balance ${formatUnits(routerBalance, 6)} USDC`,
-            };
+            });
           }
         } else {
           distributeAmount = routerBalance;
@@ -426,7 +433,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
 
         const receipt = await client.publicClient.waitForTransactionReceipt({ hash: txHash });
 
-        return {
+        return json({
           success: receipt.status === 'success',
           routerAddress,
           amount: formatUnits(distributeAmount, 6),
@@ -434,7 +441,7 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
           transactionHash: txHash,
           blockNumber: receipt.blockNumber.toString(),
           status: receipt.status,
-        };
+        });
       },
     },
 
@@ -442,12 +449,12 @@ export function createTools(watcher: PaymentWatcher | null): PluginTool[] {
     {
       name: 'x402_watcher_status',
       description: 'Get the status of the background payment watcher (tracked routers, payments detected)',
-      inputSchema: { type: 'object', properties: {}, required: [] },
+      parameters: { type: 'object', properties: {} },
       async execute() {
         if (!watcher) {
-          return { running: false, error: 'Watcher is not enabled' };
+          return json({ running: false, error: 'Watcher is not enabled' });
         }
-        return watcher.getStatus();
+        return json(watcher.getStatus());
       },
     },
   ];

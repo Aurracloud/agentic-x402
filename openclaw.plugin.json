@@ -1,7 +1,7 @@
 {
   "id": "agentic-x402",
   "name": "x402 Payments",
-  "version": "0.3.7",
+  "version": "0.3.8",
   "description": "Agent plugin for x402 payments — pay for and sell gated content with background payment watching",
   "configSchema": {
     "type": "object",
