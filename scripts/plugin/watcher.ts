@@ -49,12 +49,12 @@ export class PaymentWatcher implements PluginService {
   async start(): Promise<void> {
     this.logger.info(`Starting payment watcher (poll every ${this.pollIntervalMs / 1000}s)`);
 
-    // Initial poll to seed state
+    // Set timer first so the watcher is "running" even if initial poll fails
+    this.timer = setInterval(() => this.poll(), this.pollIntervalMs);
+
+    // Initial poll to seed state (errors are caught inside poll())
     await this.poll();
     this.seeded = true;
-
-    // Start periodic polling
-    this.timer = setInterval(() => this.poll(), this.pollIntervalMs);
   }
 
   async stop(): Promise<void> {
@@ -72,7 +72,7 @@ export class PaymentWatcher implements PluginService {
         address: r.address,
         name: r.name,
         balance: formatUnitsLocal(r.lastBalance, 6),
-        lastChecked: new Date(r.lastChecked).toISOString(),
+        lastChecked: r.lastChecked ? new Date(r.lastChecked).toISOString() : 'never',
       });
     }
 
@@ -109,6 +109,8 @@ export class PaymentWatcher implements PluginService {
     const address = getWalletAddress();
     const apiUrl = `${config.x402LinksApiUrl}/api/links/beneficiary/${address}`;
 
+    this.logger.debug(`Fetching routers for ${address} from ${apiUrl}`);
+
     const response = await fetch(apiUrl);
     if (!response.ok) {
       this.logger.warn(`Failed to fetch routers: ${response.status}`);
@@ -123,7 +125,10 @@ export class PaymentWatcher implements PluginService {
       }>;
     };
 
-    if (!data.success || !data.links) return;
+    if (!data.success || !data.links) {
+      this.logger.debug(`Router API returned success=${data.success}, links=${data.links?.length ?? 0}`);
+      return;
+    }
 
     // Add any new routers we haven't seen yet
     for (const link of data.links) {
@@ -138,6 +143,8 @@ export class PaymentWatcher implements PluginService {
         this.logger.info(`Tracking router: ${link.metadata?.name ?? 'Unnamed'} (${link.router_address})`);
       }
     }
+
+    this.logger.debug(`Tracking ${this.trackedRouters.size} router(s)`);
   }
 
   private async checkBalances(): Promise<void> {
@@ -150,7 +157,7 @@ export class PaymentWatcher implements PluginService {
     const client = getClient();
     const usdcAddress = getUsdcAddress(config.chainId);
 
-    for (const [key, router] of this.trackedRouters) {
+    for (const [, router] of this.trackedRouters) {
       try {
         const balance = await client.publicClient.readContract({
           address: usdcAddress,
