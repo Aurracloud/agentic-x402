@@ -1,0 +1,81 @@
+{
+  "id": "agentic-x402",
+  "name": "x402 Payments",
+  "version": "0.3.8",
+  "description": "Agent plugin for x402 payments — pay for and sell gated content with background payment watching",
+  "configSchema": {
+    "type": "object",
+    "properties": {
+      "evmPrivateKey": {
+        "type": "string",
+        "description": "EVM private key (0x-prefixed). Falls back to EVM_PRIVATE_KEY env var or ~/.x402/.env"
+      },
+      "network": {
+        "type": "string",
+        "enum": ["mainnet", "testnet"],
+        "default": "mainnet",
+        "description": "Network to use: mainnet (Base 8453) or testnet (Base Sepolia 84532)"
+      },
+      "maxPaymentUsd": {
+        "type": "number",
+        "default": 10,
+        "description": "Maximum payment amount in USD before rejection"
+      },
+      "x402LinksApiUrl": {
+        "type": "string",
+        "default": "https://21.cash",
+        "description": "Base URL of the x402 links API (21.cash)"
+      },
+      "hooksToken": {
+        "type": "string",
+        "description": "Bearer token for gateway hooks endpoint (must match hooks.token in gateway config). Falls back to OPENCLAW_HOOKS_TOKEN env var."
+      },
+      "watcher": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable background payment watcher"
+          },
+          "pollIntervalMs": {
+            "type": "number",
+            "default": 30000,
+            "description": "Poll interval in milliseconds for checking router balances"
+          },
+          "notifyOnPayment": {
+            "type": "boolean",
+            "default": true,
+            "description": "Send hook notification when a payment is detected"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "additionalProperties": false
+  },
+  "uiHints": {
+    "evmPrivateKey": {
+      "label": "EVM Private Key",
+      "sensitive": true,
+      "placeholder": "0x..."
+    },
+    "network": {
+      "label": "Network",
+      "placeholder": "mainnet"
+    },
+    "maxPaymentUsd": {
+      "label": "Max Payment (USD)",
+      "placeholder": "10"
+    },
+    "x402LinksApiUrl": {
+      "label": "21.cash API URL",
+      "placeholder": "https://21.cash"
+    },
+    "hooksToken": {
+      "label": "Hooks Token",
+      "sensitive": true,
+      "placeholder": "your-hooks-secret"
+    }
+  }
+}
