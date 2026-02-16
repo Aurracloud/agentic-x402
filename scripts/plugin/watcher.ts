@@ -207,7 +207,8 @@ export class PaymentWatcher implements PluginService {
   }
 
   private async sendHook(event: PaymentEvent): Promise<void> {
-    const hookUrl = `http://127.0.0.1:${this.gatewayPort}/hooks/agent`;
+    const port = this.gatewayPort || 18789;
+    const hookUrl = `http://127.0.0.1:${port}/hooks/agent`;
 
     try {
       const response = await fetch(hookUrl, {

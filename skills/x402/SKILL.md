@@ -4,7 +4,7 @@ description: Make x402 payments to access gated APIs and content. Fetch paid res
 license: MIT
 compatibility: Requires Node.js 20+, network access to x402 facilitators and EVM chains
 homepage: https://www.npmjs.com/package/agentic-x402
-metadata: {"author": "monemetrics", "version": "0.3.3", "openclaw": {"requires": {"bins": ["x402"], "env": ["EVM_PRIVATE_KEY"]}, "primaryEnv": "EVM_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "agentic-x402", "bins": ["x402"], "label": "Install agentic-x402 (npm)"}], "plugin": true}}
+metadata: {"author": "monemetrics", "version": "0.3.4", "openclaw": {"requires": {"bins": ["x402"], "env": ["EVM_PRIVATE_KEY"]}, "primaryEnv": "EVM_PRIVATE_KEY", "install": [{"id": "node", "kind": "node", "package": "agentic-x402", "bins": ["x402"], "label": "Install agentic-x402 (npm)"}], "plugin": true}}
 allowed-tools: Bash(x402:*) Bash(npm:*) Read
 ---
 
